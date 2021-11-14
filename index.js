@@ -88,12 +88,17 @@ io.on('connection', (socket) => {
     }
 
     socket.on('user:join', ({userId, roomId, seriesId}) => {
+        const localSeries = series.find((s) => s.id === seriesId);
+        if (!localSeries) {
+            console.log('USER SUBMITTED INVALID SERIES ID');
+            socket.ignoreUser = true;
+            return;
+        }
         socket.roomId = roomId;
         socket.userId = userId;
         curUser.userId = userId;
         if (!rooms[roomId]) {
             console.log(seriesId);
-            const localSeries = series.find((s) => s.id === seriesId);
             const firstId = localSeries.files[0].id;
             rooms[roomId] = {
                 users: [curUser],
@@ -110,6 +115,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('room:state', () => {
+        if (socket.ignoreUser) {
+            return;
+        }
         socket.emit('room:state', {
             users: rooms[socket.roomId].users,
             series: rooms[socket.roomId].series,
@@ -118,6 +126,9 @@ io.on('connection', (socket) => {
     })
 
     socket.on('series:setEpisode', ({episodeId}) => {
+        if (socket.ignoreUser) {
+            return;
+        }
         rooms[socket.roomId].curEpisodeId = episodeId;
         console.log(`Changing episodeId to ${episodeId}`);
         io.to(socket.roomId).emit('series:setEpisode', {
@@ -126,16 +137,25 @@ io.on('connection', (socket) => {
     })
 
     socket.on('user:state', ({newState}) => {
+        if (socket.ignoreUser) {
+            return;
+        }
         curUser.time = newState.time ?? curUser.time;
         curUser.status = newState.status ?? curUser.status;
         socket.to(socket.roomId).emit('user:state', newState);
     });
 
     socket.on('room:seek', ({time, play}) => {
+        if (socket.ignoreUser) {
+            return;
+        }
         socket.to(socket.roomId).emit('room:seek', {time, play});
     });
 
     socket.on('user:leave', () => {
+        if (socket.ignoreUser) {
+            return;
+        }
         removeUser(socket);
     });
 

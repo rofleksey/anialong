@@ -5,12 +5,14 @@ import Home from './routes/Home';
 import {HashRouter, Route, Routes} from 'react-router-dom';
 import reportWebVitals from './reportWebVitals';
 import Watch from "./routes/Watch";
+import NotFound from "./routes/NotFound";
 
 ReactDOM.render(
     <HashRouter>
         <Routes>
             <Route exact path="/" element={<Home />} />
             <Route exact path="/watch/:seriesId/:roomId" element={<Watch />}/>
+            <Route path="*" element={<NotFound />}/>
         </Routes>
     </HashRouter>,
     document.getElementById('root')

@@ -100,3 +100,14 @@ input:not([type=checkbox]), select, textarea {
     color: white;
     cursor: pointer;
 }
+
+.not-found {
+    position: relative;
+    max-width: 300px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.not-found video {
+    width: 100%;
+}

@@ -25,6 +25,7 @@ function Watch() {
         progress: 0,
     });
     const xmlRequestRef = useRef(null);
+    const blobRef = useRef(null);
     const hideControlsTimer = useRef(null);
     const videoRef = useRef(null);
     const playerRef = useRef(null);
@@ -199,6 +200,14 @@ function Watch() {
         if (remotePlaybackState.episodeId === null) {
             return;
         }
+        if (xmlRequestRef.current) {
+            xmlRequestRef.current.abort();
+        }
+        setDownloadStatus({
+            overlay: true,
+            error: null,
+            progress: 0,
+        });
         console.log(`New episode id: ${remotePlaybackState.episodeId}`);
         const file = series.files.find((f) => f.id === remotePlaybackState.episodeId);
         console.log(file);
@@ -343,9 +352,9 @@ function Watch() {
                 <div className="user-image">
                     <SquareAvatar width={40} height={40} seed={user.userId}/>
                 </div>
-                <div className="user-left">
+                {user.status !== 'loading' ? <div className="user-left">
                     <FontAwesomeIcon icon={user.status === 'paused' ? faPause : faPlay}/>
-                </div>
+                </div> : ''}
                 <div className="user-right">
                     <FontAwesomeIcon icon={user.status !== 'loading' ? faCheck : faClock}/>
                 </div>
@@ -360,12 +369,6 @@ function Watch() {
         if (episodeId === remotePlaybackState.episodeId) {
             return;
         }
-        xmlRequestRef.current.abort();
-        setDownloadStatus({
-            overlay: true,
-            error: null,
-            progress: 0,
-        });
         changeEpisodeRemote(episodeId);
     }
 
