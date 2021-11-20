@@ -1,4 +1,5 @@
 const fs = require('fs');
+const execSync = require('child_process').execSync;
 const path = require('path');
 const express = require('express');
 const app = express();
@@ -12,6 +13,7 @@ const io = new Server(server, {
     }
 });
 
+const openingTitles = ['op', 'opening'];
 const uploadsDir = './uploads/';
 const series = [];
 let seriesFolderCounter = 0;
@@ -24,17 +26,37 @@ fs.readdirSync(uploadsDir).forEach(folder => {
         files: []
     }
     const folderPath = path.join(uploadsDir, folder);
+    let scanChapters = true;
     fs.readdirSync(folderPath).forEach(file => {
         const filePath = path.join(folderPath, file);
+        let opening = undefined;
         if (file === 'name.txt') {
             seriesEntry.name = fs.readFileSync(filePath).toString()
         } else {
             const name = path.parse(file).name;
+            if (scanChapters) {
+                const chaptersString = execSync(`ffprobe -i "${filePath}" -print_format json -show_chapters -loglevel error`).toString();
+                const chaptersJson = JSON.parse(chaptersString);
+                if (!chaptersJson || !chaptersJson.chapters || chaptersJson.chapters.length === 0) {
+                    scanChapters = false;
+                } else {
+                    const openingChapter = chaptersJson.chapters.find((chapter) => openingTitles.includes(chapter.tags.title.toLowerCase()));
+                    if (openingChapter) {
+                        opening = {
+                            from: openingChapter.start_time,
+                            to: openingChapter.end_time,
+                        }
+                    } else {
+                        scanChapters = false;
+                    }
+                }
+            }
             seriesEntry.files.push({
                 id: seriesFileCounter++,
                 name,
                 number: Number(name),
-                path: filePath.replace(/\\/g, '/')
+                path: filePath.replace(/\\/g, '/'),
+                opening,
             });
         }
     });
@@ -165,6 +187,6 @@ io.on('connection', (socket) => {
     })
 });
 
-server.listen(2020, () => {
-    console.log('listening on *:2020');
+server.listen(2021, () => {
+    console.log('listening on *:2021');
 });

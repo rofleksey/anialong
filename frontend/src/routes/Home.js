@@ -1,11 +1,12 @@
 import './App.css';
 import logo from '../logo.png';
 import axios from 'axios';
-import React, {useEffect, useState} from "react";
-import { nanoid } from "nanoid";
-import { Link } from "react-router-dom";
+import React, {useEffect, useMemo, useState} from "react";
+import {nanoid} from "nanoid";
+import {Link} from "react-router-dom";
+import {isDev} from "../lib/util";
 
-function renderList(series, newRoomId) {
+function renderList(baseUrl, series, newRoomId) {
     return (
         series.map((entry) => (
             <li key={entry.id}>
@@ -20,11 +21,14 @@ function renderList(series, newRoomId) {
 }
 
 function Home() {
+    const baseUrl = useMemo(() => {
+        return isDev() ? 'http://localhost:2021' : '';
+    }, [])
     const [series, useSeries] = useState([]);
     const [newRoomId] = useState(nanoid(6));
 
     useEffect(() => {
-        axios.get('/series').then((res) => {
+        axios.get(`${baseUrl}/series`).then((res) => {
             // eslint-disable-next-line react-hooks/rules-of-hooks
             useSeries(res.data.series);
         }).catch((err) => {
@@ -50,7 +54,7 @@ function Home() {
                             placeholder="ПОИСК"/>
                         <nav className="series">
                             <ul className="series-list">
-                                {renderList(series, newRoomId)}
+                                {renderList(baseUrl, series, newRoomId)}
                             </ul>
                         </nav>
                     </div>

@@ -1,19 +1,25 @@
 import './App.css';
 import './Watch.css'
-import React, {createRef, useEffect, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {useSocket} from "../hooks/useSocket";
 import {useParams} from "react-router-dom";
 import {clamp, throttle} from 'lodash';
 import {useInterval} from "react-use";
 import SquareAvatar from "../components/SquareAvatar";
-import {faPause, faCheck, faPlay, faClock} from '@fortawesome/free-solid-svg-icons'
+import {faCheck, faClock, faPause, faPlay} from '@fortawesome/free-solid-svg-icons'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import RoflexProgressBar from "../components/RoflexProgressBar";
+import {isDev} from "../lib/util";
 
 function Watch() {
+    const baseUrl = useMemo(() => {
+        return isDev() ? 'http://localhost:2021' : '';
+    }, []);
     const {seriesId, roomId} = useParams();
     const [users, myUserId, series, remotePlaybackState, seekRemote, updateState, changeEpisodeRemote] = useSocket(seriesId, roomId);
     const [remoteSrc, setRemoteSrc] = useState(null);
+    const [openingTime, setOpeningTime] = useState([]);
+    const [showSkipOpening, setShowSkipOpening] = useState(false);
     const [blobSrc, setBlobSrc] = useState(null);
     const [information, setInformation] = useState({
         seriesName: '',
@@ -25,7 +31,6 @@ function Watch() {
         progress: 0,
     });
     const xmlRequestRef = useRef(null);
-    const blobRef = useRef(null);
     const hideControlsTimer = useRef(null);
     const videoRef = useRef(null);
     const playerRef = useRef(null);
@@ -47,6 +52,7 @@ function Watch() {
     useEffect(() => {
         console.log("seriesId", seriesId);
         console.log("roomId", roomId);
+        videoRef.current.controls = false;
     }, [roomId, seriesId]);
 
     // sync remote time and playing
@@ -106,6 +112,7 @@ function Watch() {
             videoRef.current.pause();
             stopHideControlsTimer();
         }
+        videoRef.current.controls = false;
     }, [playerState.playing]);
 
     // set volume
@@ -131,6 +138,11 @@ function Watch() {
         } else {
             status = 'paused';
         }
+        if (openingTime.length !== 0) {
+            const curTime = videoRef.current.currentTime;
+            const needToShow = openingTime[0] - 3 <= curTime && curTime <= openingTime[0] + 5;
+            setShowSkipOpening(needToShow);
+        }
         updateState({
             userId: myUserId,
             time: videoRef.current.currentTime,
@@ -152,7 +164,7 @@ function Watch() {
         console.log("Starting preload");
         const request = new XMLHttpRequest();
         xmlRequestRef.current = request;
-        request.open('GET', `/${remoteSrc}`, true);
+        request.open('GET', `${baseUrl}/${remoteSrc}`, true);
         request.responseType = 'blob';
         request.onload = function () {
             if (this.status === 200) {
@@ -216,10 +228,13 @@ function Watch() {
             seriesName: series.name,
             episodeNumber: file.number,
         });
+        if (file.opening) {
+            setOpeningTime([Number(file.opening.from), Number(file.opening.to)]);
+        }
         setRemoteSrc(file.path);
     }, [series, remotePlaybackState.episodeId]);
 
-    function togglePlayback() {
+    function togglePlayback(e) {
         if (playerState.playing) {
             seekRemote(videoRef.current.currentTime, false);
         } else {
@@ -229,6 +244,9 @@ function Watch() {
             ...prevState,
             playing: !prevState.playing,
         }));
+        if (e) {
+            e.stopPropagation();
+        }
     }
 
     function movePreview(e) {
@@ -299,7 +317,6 @@ function Watch() {
     }
 
     function playerKeyboardListener(e) {
-        console.log(`Key: '${e.key}'`);
         // TODO: enable throttle here?
         if (e.key === ' ') {
             togglePlayback();
@@ -315,7 +332,7 @@ function Watch() {
         }
     }
 
-    function toggleFullScreen() {
+    function toggleFullScreen(e) {
         if (
             document.fullscreenElement ||
             document.webkitFullscreenElement ||
@@ -344,6 +361,7 @@ function Watch() {
             }
             element.focus();
         }
+        e.stopPropagation();
     }
 
     function renderUsers(users) {
@@ -383,6 +401,12 @@ function Watch() {
         ));
     }
 
+    function onSkipOpening(e) {
+        seekTo(openingTime[1], false, true);
+        setShowSkipOpening(false);
+        e.stopPropagation();
+    }
+
     return (
         <div className="app">
             <section className="main-column">
@@ -394,6 +418,7 @@ function Watch() {
                         className={`player ${playerState.showControls ? '' : 'immersed'}`}
                         onMouseMove={restartHideControlsTimer}
                         onKeyDown={playerKeyboardListener}
+                        onClick={togglePlayback}
                         tabIndex="0"
                         ref={playerRef}>
                         <div className="video-container">
@@ -402,7 +427,7 @@ function Watch() {
                                     {downloadStatus.progress !== null ?
                                         <RoflexProgressBar progress={downloadStatus.progress}
                                                            width={500}
-                                                           text={downloadStatus.progress !== null ? `${Math.floor(downloadStatus.progress * 100)} %` : ''}/> :
+                                                           text={`${Math.floor(downloadStatus.progress * 100)} %`}/> :
                                         <span>{downloadStatus.error}</span>}
                                 </div>
                             </div>
@@ -410,11 +435,15 @@ function Watch() {
                                 preload="true"
                                 ref={videoRef}
                                 className="video"
-                                onClick={togglePlayback}
                                 src={blobSrc}/>
                             <div>
                                 <div className="userList">
                                     {renderUsers(users)}
+                                </div>
+                                <div
+                                    className={`skipOpening ${showSkipOpening ? 'show' : ''}`}
+                                    onClick={onSkipOpening}>
+                                    Пропустить
                                 </div>
                                 <div className="controls">
                                     <div>
@@ -426,6 +455,9 @@ function Watch() {
                                             className="slider seeker"
                                             onMouseMove={onPreviewHover}
                                             onMouseDown={seekToPreview}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                            }}
                                             ref={sliderRef}>
                                             <div className="preview"
                                                  style={{left: `${playerState.previewLeft * 100}%`}}>
@@ -439,6 +471,9 @@ function Watch() {
                                             className="slider volume"
                                             onMouseMove={onVolumeHover}
                                             onMouseDown={seekToVolume}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                            }}
                                             ref={volumeSliderRef}>
                                             <div className="handle"
                                                  style={{width: `${playerState.volume * 100}%`}}/>

@@ -1,7 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
 import io from 'socket.io-client'
 import {nanoid} from 'nanoid'
-import {useLocalStorage, useBeforeUnload} from 'react-use';
+import {useBeforeUnload, useLocalStorage} from 'react-use';
+import {isDev} from "../lib/util";
 
 export const useSocket = (seriesId, roomId) => {
     const [users, setUsers] = useState([])
@@ -28,7 +29,7 @@ export const useSocket = (seriesId, roomId) => {
     }
 
     useEffect(() => {
-        socketRef.current = io()
+        socketRef.current = isDev() ? io('http://localhost:2021') : io();
 
         socketRef.current.emit('user:join', {userId: myUserId, roomId, seriesId})
         socketRef.current.emit('room:state', {})
