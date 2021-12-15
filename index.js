@@ -63,6 +63,7 @@ fs.readdirSync(uploadsDir).forEach(folder => {
     seriesEntry.files.sort((a, b) => a.number - b.number);
     series.push(seriesEntry)
 });
+series.sort((a, b) => a.name.localeCompare(b.name));
 
 console.log(JSON.stringify(series, null, 1));
 console.log(`Loaded ${seriesFolderCounter} series and ${seriesFileCounter} files`);
