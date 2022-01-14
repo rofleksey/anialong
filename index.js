@@ -70,7 +70,7 @@ console.log(`Loaded ${seriesFolderCounter} series and ${seriesFileCounter} files
 
 app.use(cors())
 app.use('/uploads', express.static('uploads'))
-app.use('/', express.static('frontend\\build'))
+app.use('/', express.static(path.join('frontend', 'build')));
 
 app.get('/series', (req, res) => {
     res.json({
