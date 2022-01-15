@@ -19,6 +19,7 @@ const series = [];
 let seriesFolderCounter = 0;
 let seriesFileCounter = 0;
 
+console.log('Loading series...')
 fs.readdirSync(uploadsDir).forEach(folder => {
     const seriesEntry = {
         id: `${seriesFolderCounter++}`,
@@ -188,6 +189,6 @@ io.on('connection', (socket) => {
     })
 });
 
-server.listen(2021, () => {
-    console.log('listening on *:2021');
+server.listen(8080, () => {
+    console.log('listening on *:8080');
 });
