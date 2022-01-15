@@ -33,19 +33,24 @@ spec:
           volumeMounts:
             - name: anialong-uploads
               mountPath: /opt/uploads
+            - name: anialong-certs
+              mountPath: /opt/certs
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 8443
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /
-              port: 8080
+              port: 8443
           readinessProbe:
             httpGet:
               path: /
-              port: 8080
+              port: 8443
       volumes:
         - name: anialong-uploads
           hostPath:
             path: /home/roflex/anialong-uploads
+        - name: anialong-certs
+          hostPath:
+            path: /home/roflex/certs

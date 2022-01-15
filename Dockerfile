@@ -6,5 +6,5 @@ COPY index.js .
 COPY package*.json ./
 COPY frontend/build ./frontend/build
 RUN npm i --production
-EXPOSE 8080
+EXPOSE 8443
 CMD [ "node", "index.js" ]

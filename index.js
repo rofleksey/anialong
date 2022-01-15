@@ -4,8 +4,12 @@ const path = require('path');
 const express = require('express');
 const app = express();
 const cors = require('cors')
-const http = require('http');
-const server = http.createServer(app);
+const https = require('http');
+const server = https.createServer({
+    cert: fs.readFileSync('/opt/certs/server.crt'),
+    key: fs.readFileSync('/opt/certs/server.key'),
+    ca: fs.readFileSync('/opt/certs/server.ca')
+}, app);
 const {Server} = require("socket.io");
 const io = new Server(server, {
     cors: {
@@ -189,6 +193,6 @@ io.on('connection', (socket) => {
     })
 });
 
-server.listen(8080, () => {
-    console.log('listening on *:8080');
+server.listen(8443, () => {
+    console.log('listening on *:8443');
 });

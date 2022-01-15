@@ -24,7 +24,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 3939
+  port: 2021
 
 ingress:
   enabled: true
@@ -37,7 +37,7 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+    - secretName: ingress-secret
+      hosts:
+        - along.rofleksey.ru
